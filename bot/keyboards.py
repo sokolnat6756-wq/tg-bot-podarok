@@ -53,6 +53,7 @@ def occasion_kb() -> InlineKeyboardMarkup:
         [
             ("День рождения", "occasion:birthday"),
             ("Новый год", "occasion:ny"),
+            ("14 февраля", "occasion:valentine"),
             ("8 Марта", "occasion:mar8"),
             ("23 Февраля", "occasion:feb23"),
             ("Свадьба / годовщина", "occasion:wedding"),
