@@ -1,11 +1,23 @@
+# Секреты и локальные настройки
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets/
+
+# Виртуальное окружение и кэш Python
 .venv/
 venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
+
+# IDE и служебные файлы
 .idea/
 .vscode/
 *.log
