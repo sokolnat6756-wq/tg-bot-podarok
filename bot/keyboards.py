@@ -15,23 +15,45 @@ def main_menu() -> ReplyKeyboardMarkup:
 def card_offer_kb() -> InlineKeyboardMarkup:
     return _inline(
         [
-            ("🖼 Да, создать открытку", "action:card_yes"),
-            ("🎁 Нет, дальше к подарку", "action:card_skip"),
+            ("🖼 Создать открытку", "action:card_yes"),
+            ("Не сейчас", "action:card_skip"),
         ],
         row_width=1,
     )
 
 
-def card_result_kb(*, resume_gift: bool) -> InlineKeyboardMarkup:
-    items = [
-        ("🔄 Повторить открытку", "action:card_retry"),
-    ]
-    if resume_gift:
-        items.append(("🎁 Продолжить подбор подарка", "action:card_skip"))
-    else:
-        items.append(("🖼 Новая открытка", "action:card_again"))
-        items.append(("🎁 Подобрать подарок", "action:restart"))
-    return _inline(items, row_width=1)
+def card_result_kb() -> InlineKeyboardMarkup:
+    return _inline(
+        [
+            ("🔄 Повторить открытку", "action:card_retry"),
+            ("🖼 Новая открытка", "action:card_again"),
+            ("🎁 Подобрать подарок", "action:restart"),
+        ],
+        row_width=1,
+    )
+
+
+def ideas_kb(count: int = 0) -> InlineKeyboardMarkup:
+    """После идей сразу предлагаем открытку — выбор номера подарка не нужен."""
+    del count  # оставляем параметр на будущее (например, «где купить»)
+    return _inline(
+        [
+            ("🖼 Создать открытку", "action:card_yes"),
+            ("🔄 Ещё идеи", "action:more"),
+            ("🎁 Начать заново", "action:restart"),
+        ],
+        row_width=1,
+    )
+
+
+def retry_ideas_kb() -> InlineKeyboardMarkup:
+    return _inline(
+        [
+            ("🔄 Повторить подбор", "action:more"),
+            ("🎁 Начать заново", "action:restart"),
+        ],
+        row_width=1,
+    )
 
 
 def recipient_kb() -> InlineKeyboardMarkup:
@@ -111,16 +133,6 @@ def interest_kb() -> InlineKeyboardMarkup:
     )
 
 
-def results_kb() -> InlineKeyboardMarkup:
-    return _inline(
-        [
-            ("🔄 Другие варианты", "action:more"),
-            ("🎁 Начать заново", "action:restart"),
-        ],
-        row_width=1,
-    )
-
-
 def _inline(
     items: list[tuple[str, str]],
     row_width: int = 2,
@@ -144,7 +156,7 @@ STEP_KEYBOARDS = {
 STEP_PROMPTS = {
     "recipient": "Кому подбираем подарок?",
     "gender": "Укажите пол получателя:",
-    "age": "Какой возраст?",
+    "age": "Какой примерно возраст?",
     "occasion": "Какой повод?",
     "budget": "Какой бюджет?",
     "interest": "Что ближе всего по интересам?",

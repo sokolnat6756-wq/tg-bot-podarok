@@ -9,6 +9,7 @@
 credentials*.json
 secrets/
 openai*.json
+bot/fonts/_preview_*.png
 
 # Виртуальное окружение и кэш Python
 .venv/

@@ -54,6 +54,16 @@ GENDER_LABELS = {
     "any": "любой",
 }
 
+INTEREST_LABELS = {
+    "books": "книги",
+    "tech": "техника",
+    "sport": "спорт",
+    "beauty": "красота",
+    "home": "дом",
+    "food": "еда",
+    "hobby": "хобби",
+}
+
 
 @dataclass(frozen=True)
 class CardResult:
@@ -64,6 +74,46 @@ class CardResult:
     retryable: bool = False
 
 
+def _scene_hints(
+    *,
+    occasion_key: str,
+    recipient_key: str,
+    age_key: str,
+    interest_key: str,
+    birthday_years: str,
+) -> str:
+    bits: list[str] = []
+    if recipient_key == "child" or age_key == "age_child":
+        bits.append(
+            "Playful child-friendly festive scene, bright soft colors, cute decorations, "
+            "no scary elements, no cars-as-default cliché unless interest is tech/cars."
+        )
+    elif recipient_key in {"mom"} or age_key == "age_senior":
+        bits.append("Elegant warm adult aesthetic, refined florals or cozy ambiance.")
+    elif recipient_key in {"friend", "girlfriend", "partner"}:
+        bits.append("Modern stylish celebration mood for a close person.")
+
+    interest = INTEREST_LABELS.get(interest_key, "")
+    if interest:
+        bits.append(f"Subtly reflect hobby/interest atmosphere: {interest}.")
+
+    occasion = OCCASION_LABELS.get(occasion_key, occasion_key)
+    bits.append(f"Occasion-specific festive atmosphere for: {occasion}.")
+
+    if birthday_years:
+        bits.append(
+            f"Birthday mood for someone turning {birthday_years}; "
+            "do not paint age digits on the image."
+        )
+    # Открытка НЕ должна изображать конкретный предложенный подарок
+    bits.append(
+        "Do NOT depict any specific product gift (no basketball, gadgets, boxes as the main subject). "
+        "Focus on luxurious festive atmosphere and celebration mood only. "
+        "Unique creative composition — avoid repeating the same balloons/car template."
+    )
+    return " ".join(bits)
+
+
 def build_background_prompt(
     *,
     occasion_key: str,
@@ -71,22 +121,36 @@ def build_background_prompt(
     age_key: str,
     gender_key: str,
     name: str,
+    birthday_years: str = "",
+    selected_gift: str = "",
+    interest_key: str = "",
 ) -> str:
+    del selected_gift  # подарок не рисуем на открытке (поле оставлено для совместимости API)
     occasion = OCCASION_LABELS.get(occasion_key, occasion_key)
     recipient = RECIPIENT_LABELS.get(recipient_key, recipient_key or "близкий человек")
-    age = AGE_LABELS.get(age_key, "взрослый")
-    gender = GENDER_LABELS.get(gender_key, "любой")
+    age = AGE_LABELS.get(age_key, "")
+    gender = GENDER_LABELS.get(gender_key, "")
     safe_name = (name or "").strip()[:40]
+    hints = _scene_hints(
+        occasion_key=occasion_key,
+        recipient_key=recipient_key,
+        age_key=age_key,
+        interest_key=interest_key,
+        birthday_years=birthday_years,
+    )
+    age_bit = f" Age group: {age}." if age else ""
+    gender_bit = f" Gender presentation: {gender}." if gender else ""
     return (
-        "Premium vertical greeting-card background illustration, luxurious festive mood, "
-        "elegant soft lighting, refined details, high-end stationery aesthetic. "
-        f"Occasion atmosphere: {occasion}. "
-        f"Intended for: {recipient}, age vibe: {age}, gender presentation: {gender}. "
-        f"Subtle personal dedication feeling for someone named {safe_name}, "
-        "but do NOT render any letters, numbers, words, signatures, logos, watermarks, "
-        "or typography of any kind on the image. Leave a clean darker soft area in the "
-        "lower third for later text overlay. No faces of real celebrities. "
-        "Portrait composition suitable for mobile phone screen."
+        "Create a premium luxury full-bleed vertical 9:16 greeting-card illustration. "
+        "High-end colorful festive scene filling the entire frame, cinematic lighting, "
+        "rich refined details, opulent celebration mood, no letterboxing, no empty borders. "
+        "Keep the main subject centered; leave soft visually calm zones near the top "
+        "and bottom edges for later text overlay (but still filled with scene, not blank). "
+        f"Occasion: {occasion}. For: {recipient}.{age_bit}{gender_bit} "
+        f"Personal dedication vibe for {safe_name or 'a loved one'}. {hints} "
+        "IMPORTANT: absolutely no letters, numbers, words, signatures, logos, watermarks, "
+        "or typography of any kind on the image. No celebrity faces. "
+        "Do not illustrate a store product or a concrete gift item as the hero object."
     )
 
 
@@ -98,6 +162,9 @@ async def generate_greeting_card(
     gender_key: str,
     name: str,
     wish: str,
+    birthday_years: str = "",
+    selected_gift: str = "",
+    interest_key: str = "",
 ) -> CardResult:
     api_key = get_openai_api_key()
     if not api_key:
@@ -120,6 +187,9 @@ async def generate_greeting_card(
         age_key=age_key,
         gender_key=gender_key,
         name=name,
+        birthday_years=birthday_years,
+        selected_gift=selected_gift,
+        interest_key=interest_key,
     )
 
     try:
@@ -164,7 +234,7 @@ async def generate_greeting_card(
         logger.exception("OpenAI Image: неожиданная ошибка")
         return CardResult(
             ok=False,
-            error="Что-то пошло не так при создании открытки. Нажмите «Повторить» или продолжите подбор подарка.",
+            error="Что-то пошло не так при создании открытки. Нажмите «Повторить».",
             retryable=True,
         )
 
@@ -177,7 +247,17 @@ async def generate_greeting_card(
 
     try:
         background = base64.b64decode(result.data[0].b64_json)
-        final_png = compose_greeting_card_image(background, name=name, wish=wish)
+        final_png = compose_greeting_card_image(
+            background,
+            name=name,
+            wish=wish,
+            occasion_key=occasion_key,
+            recipient_key=recipient_key,
+            age_key=age_key,
+            birthday_years=birthday_years,
+            interest_key=interest_key,
+            selected_gift=selected_gift,
+        )
     except Exception:
         logger.exception("OpenAI Image: ошибка сборки открытки")
         return CardResult(
