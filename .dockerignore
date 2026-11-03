@@ -3,6 +3,7 @@
 .gitignore
 .gitattributes
 
+# Секреты — никогда не копировать в образ
 .env
 .env.*
 !.env.example
@@ -25,4 +26,6 @@ Thumbs.db
 BRIEF.md
 tests
 *.md
-!README.md
+!DEPLOY_TIMEWEB.md
+agent-transcripts
+.cursor

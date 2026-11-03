@@ -1,0 +1,15 @@
+# Запуск бота на облачном сервере Timeweb (VPS), например в Нидерландах.
+# Секреты берутся из файла .env на сервере — не коммитьте .env в Git.
+
+services:
+  bot:
+    build: .
+    container_name: tg-bot-podarok
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+    # Порт наружу не обязателен для polling; оставлен для проверки /health при необходимости
+    ports:
+      - "8080:8080"

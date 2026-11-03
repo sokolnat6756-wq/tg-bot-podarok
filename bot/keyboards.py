@@ -7,8 +7,31 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 def main_menu() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text="🎁 Подобрать подарок"))
+    builder.add(KeyboardButton(text="🖼 Сделать открытку"))
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
+
+
+def card_offer_kb() -> InlineKeyboardMarkup:
+    return _inline(
+        [
+            ("🖼 Да, создать открытку", "action:card_yes"),
+            ("🎁 Нет, дальше к подарку", "action:card_skip"),
+        ],
+        row_width=1,
+    )
+
+
+def card_result_kb(*, resume_gift: bool) -> InlineKeyboardMarkup:
+    items = [
+        ("🔄 Повторить открытку", "action:card_retry"),
+    ]
+    if resume_gift:
+        items.append(("🎁 Продолжить подбор подарка", "action:card_skip"))
+    else:
+        items.append(("🖼 Новая открытка", "action:card_again"))
+        items.append(("🎁 Подобрать подарок", "action:restart"))
+    return _inline(items, row_width=1)
 
 
 def recipient_kb() -> InlineKeyboardMarkup:

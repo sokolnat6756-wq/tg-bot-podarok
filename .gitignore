@@ -4,8 +4,11 @@
 !.env.example
 *.pem
 *.key
+*secret*
+*credentials*
 credentials*.json
 secrets/
+openai*.json
 
 # Виртуальное окружение и кэш Python
 .venv/
