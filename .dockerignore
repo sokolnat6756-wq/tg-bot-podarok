@@ -29,3 +29,6 @@ tests
 !DEPLOY_TIMEWEB.md
 agent-transcripts
 .cursor
+bot/fonts/_preview_*.png
+bot-deploy.tgz
+scripts

@@ -62,17 +62,16 @@ python run.py
 
 Доступ модели `gpt-image-2` к вашему аккаунту из этого проекта **не проверялся**. Если API вернёт ошибку модели — смените `OPENAI_IMAGE_MODEL` на доступную вам (например `gpt-image-2.5-flare`).
 
-## Деплой на облачный сервер Timeweb (VPS)
+## Деплой на VPS (Timeweb, Амстердам)
 
-Нужен обычный **облачный сервер**, лучше в **Нидерландах** (не App Platform).  
-Подробно: **[DEPLOY_TIMEWEB.md](DEPLOY_TIMEWEB.md)**.
+Подробная инструкция: **[DEPLOY_TIMEWEB.md](DEPLOY_TIMEWEB.md)**.
 
 Кратко:
-1. Создайте VPS в Timeweb (Netherlands)
-2. Загрузите проект **без** локального `.env`
-3. На сервере создайте `.env` с `BOT_TOKEN` и `OPENAI_API_KEY`
-4. Запустите: `docker compose up -d --build`
-5. Остановите бота на своём ПК, чтобы не было Conflict
+1. VPS Ubuntu + Docker
+2. Загрузить проект **без** `.env`
+3. На сервере создать `.env` (`BOT_TOKEN`, `OPENAI_API_KEY`)
+4. `docker compose up -d --build`
+5. Локального бота на ПК остановить
 
 Сессии и лимиты открыток в памяти: после перезапуска контейнера сбрасываются.
 
