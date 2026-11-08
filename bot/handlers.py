@@ -175,6 +175,7 @@ async def _run_card_generation(message: Message, user_id: int) -> None:
             caption="Ваша персональная открытка готова — можно сохранить и отправить ✨",
             reply_markup=card_result_kb(),
         )
+        card_guard.commit(user_id)
         session.step = "card_done"
     except Exception:
         try:
@@ -258,8 +259,18 @@ async def start_quiz(message: Message) -> None:
     )
 
 
+async def _reject_if_card_limit(message: Message, user_id: int) -> bool:
+    text = card_guard.limit_message(user_id)
+    if not text:
+        return False
+    await message.answer(text, reply_markup=main_menu())
+    return True
+
+
 @router.message(F.text.in_({"🖼 Сделать открытку", "Сделать открытку"}))
 async def start_card(message: Message) -> None:
+    if await _reject_if_card_limit(message, message.from_user.id):
+        return
     session = store.get(message.from_user.id)
     session.start_card_standalone()
     await _ask_next_card_context(message, message.from_user.id)
@@ -304,6 +315,8 @@ async def on_action(callback: CallbackQuery) -> None:
         return
 
     if action == "card_yes":
+        if await _reject_if_card_limit(callback.message, callback.from_user.id):
+            return
         if not session.can_generate_card():
             await callback.message.answer(
                 "Сначала получите идеи подарков кнопкой «Подобрать подарок».",
@@ -331,6 +344,8 @@ async def on_action(callback: CallbackQuery) -> None:
         return
 
     if action == "card_retry":
+        if await _reject_if_card_limit(callback.message, callback.from_user.id):
+            return
         if not session.can_generate_card() or not session.context_value("card_name"):
             await callback.message.answer(
                 "Недостаточно данных для повтора. Выберите подарок или нажмите «Сделать открытку».",
@@ -341,6 +356,8 @@ async def on_action(callback: CallbackQuery) -> None:
         return
 
     if action == "card_again":
+        if await _reject_if_card_limit(callback.message, callback.from_user.id):
+            return
         session.start_card_standalone()
         await _ask_next_card_context(callback.message, callback.from_user.id)
         return

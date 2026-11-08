@@ -18,7 +18,7 @@ _DEFAULT_IMAGE_SIZE = "1024x1536"
 _DEFAULT_IMAGE_QUALITY = "medium"
 _DEFAULT_CARD_WIDTH = 1080
 _DEFAULT_CARD_HEIGHT = 1920
-_DEFAULT_CARD_HOURLY_LIMIT = 5
+_DEFAULT_CARD_USER_LIMIT = 2
 
 
 def get_bot_token() -> str:
@@ -71,11 +71,11 @@ def get_card_output_size() -> tuple[int, int]:
     return width, height
 
 
-def get_card_hourly_limit() -> int:
-    """Сколько открыток на пользователя за скользящий час. 0 = без лимита."""
-    raw = os.getenv("CARD_HOURLY_LIMIT", str(_DEFAULT_CARD_HOURLY_LIMIT)).strip()
+def get_card_user_limit() -> int:
+    """Сколько готовых открыток можно создать одному пользователю. 0 = без лимита."""
+    raw = os.getenv("CARD_USER_LIMIT", str(_DEFAULT_CARD_USER_LIMIT)).strip()
     try:
         value = int(raw)
     except ValueError:
-        return _DEFAULT_CARD_HOURLY_LIMIT
+        return _DEFAULT_CARD_USER_LIMIT
     return max(0, value)
