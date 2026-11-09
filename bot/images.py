@@ -54,15 +54,54 @@ GENDER_LABELS = {
     "any": "любой",
 }
 
-INTEREST_LABELS = {
-    "books": "книги",
-    "tech": "техника",
-    "sport": "спорт",
-    "beauty": "красота",
-    "home": "дом",
-    "food": "еда",
-    "hobby": "хобби",
+# Настроение интереса — только предметы и свет, без человека, который этим занимается.
+_INTEREST_STILL_LIFE = {
+    "books": "a few beautiful closed books and warm library light, no reader",
+    "tech": "sleek refined objects and a soft glow, no person holding a device",
+    "sport": "elegant sense of motion in light and color only, no athlete",
+    "beauty": "flowers, silk and a perfume bottle, no face and no one applying makeup",
+    "home": "a beautiful empty interior, no occupant",
+    "food": "an exquisite untouched table, no diner, no hands, no one drinking",
+    "hobby": "tasteful crafted objects, no person making them",
 }
+
+_OCCASION_SCENES = {
+    "birthday": (
+        "Birthday still life: an unattended celebration cake, flowers, candles and warm light. "
+        "No guest, no person blowing out candles."
+    ),
+    "valentine": (
+        "Romantic luxury still life: roses, candlelight, silk and gold. "
+        "No couple and no people."
+    ),
+    "mar8": (
+        "Luxury spring still life for Women's Day: peonies, tulips, silk ribbons, "
+        "soft gold light, marble and delicate glass. "
+        "No woman, no seated person, no one holding a cup of coffee or tea."
+    ),
+    "feb23": (
+        "Noble festive still life in deep blue and gold, with formal ribbons and stars. "
+        "No soldiers, no men, no portraits."
+    ),
+    "wedding": (
+        "Elegant ceremony atmosphere: flowers and rings as a still life. "
+        "No bride, no groom, no guests."
+    ),
+    "colleague": (
+        "Refined festive still life with flowers and warm light. "
+        "No coworker and no person at a desk."
+    ),
+    "no_reason": "Warm luxury still life of flowers and light, with no people.",
+}
+
+_NO_REAL_PEOPLE = (
+    "FORBIDDEN: real people and ordinary humans of any age or gender. "
+    "No portraits, faces, eyes, hands, bodies, silhouettes, or lifestyle scenes "
+    "of someone sitting, standing, walking, posing, celebrating, or drinking coffee or tea. "
+    "Do not draw the recipient, a friend, a woman, a man, or a child. "
+    "Do not invent a person to stand in for the name on the card. "
+    "The picture is a premium festive still life, not a photograph of a human."
+)
 
 
 @dataclass(frozen=True)
@@ -74,6 +113,31 @@ class CardResult:
     retryable: bool = False
 
 
+def _style_without_people(recipient_key: str, age_key: str) -> str:
+    """Настроение по поводу, но никогда не просьба нарисовать человека."""
+    if recipient_key == "child" or age_key == "age_child":
+        return (
+            "Playful festive décor, bright soft colors, cute decorations and toys. "
+            "No scary elements and no child in the picture."
+        )
+    if recipient_key in {"mom", "girlfriend"} or age_key == "age_senior":
+        return "Elegant refined florals, silk and warm light. No woman and no person."
+    return "Modern luxurious festive still life. No people."
+
+
+def _new_year_scene() -> str:
+    return (
+        "Premium colorful New Year interior. The scene MUST clearly include all of: "
+        "a Christmas tree, ornaments, lights and garlands, toys and baubles on the tree, "
+        "a glowing fireplace, and wrapped gift boxes near the tree. "
+        "The ONLY human-like figures allowed are fairy-tale holiday characters in traditional costume: "
+        "Ded Moroz or Santa Claus, and Snegurochka may stand beside them. "
+        "They must read as classic festive characters, not as a photo of a real contemporary person "
+        "and not as the recipient. No other people, no guests, no portraits. "
+        "Festive animals such as rabbits or squirrels may appear as decoration."
+    )
+
+
 def _scene_hints(
     *,
     occasion_key: str,
@@ -83,33 +147,36 @@ def _scene_hints(
     birthday_years: str,
 ) -> str:
     bits: list[str] = []
-    if recipient_key == "child" or age_key == "age_child":
+    if occasion_key == "ny":
         bits.append(
-            "Playful child-friendly festive scene, bright soft colors, cute decorations, "
-            "no scary elements, no cars-as-default cliché unless interest is tech/cars."
+            "Luxurious colorful winter celebration. "
+            "Ordinary people are not allowed; only the holiday characters named below."
         )
-    elif recipient_key in {"mom"} or age_key == "age_senior":
-        bits.append("Elegant warm adult aesthetic, refined florals or cozy ambiance.")
-    elif recipient_key in {"friend", "girlfriend", "partner"}:
-        bits.append("Modern stylish celebration mood for a close person.")
+        bits.append(_new_year_scene())
+    else:
+        bits.append(_style_without_people(recipient_key, age_key))
+        bits.append(
+            _OCCASION_SCENES.get(
+                occasion_key,
+                "Luxurious festive still life for the occasion, with no people.",
+            )
+        )
+        bits.append("No Santa, no Ded Moroz, no Snegurochka, and no ordinary people.")
 
-    interest = INTEREST_LABELS.get(interest_key, "")
-    if interest:
-        bits.append(f"Subtly reflect hobby/interest atmosphere: {interest}.")
-
-    occasion = OCCASION_LABELS.get(occasion_key, occasion_key)
-    bits.append(f"Occasion-specific festive atmosphere for: {occasion}.")
+    still_life = _INTEREST_STILL_LIFE.get(interest_key, "")
+    if still_life:
+        bits.append(f"A subtle still-life accent only: {still_life}.")
 
     if birthday_years:
         bits.append(
-            f"Birthday mood for someone turning {birthday_years}; "
-            "do not paint age digits on the image."
+            "Birthday atmosphere only. Do not paint the age as digits and do not show a person."
         )
     # Открытка НЕ должна изображать конкретный предложенный подарок
     bits.append(
-        "Do NOT depict any specific product gift (no basketball, gadgets, boxes as the main subject). "
-        "Focus on luxurious festive atmosphere and celebration mood only. "
-        "Unique creative composition — avoid repeating the same balloons/car template."
+        "Do NOT depict any specific product gift (no basketball, gadgets, boxes as the main subject, "
+        "except wrapped holiday gifts on a New Year card). "
+        "Focus on a luxurious festive atmosphere. "
+        "Unique creative composition — avoid repeating the same balloons or car template."
     )
     return " ".join(bits)
 
@@ -125,12 +192,30 @@ def build_background_prompt(
     selected_gift: str = "",
     interest_key: str = "",
 ) -> str:
-    del selected_gift  # подарок не рисуем на открытке (поле оставлено для совместимости API)
+    # Имя, пол и роль не отдаём модели как персонажа: из-за этого она рисовала
+    # случайную женщину вместо праздничной открытки. Текст имени накладывается отдельно.
+    del name, gender_key, selected_gift
     occasion = OCCASION_LABELS.get(occasion_key, occasion_key)
-    recipient = RECIPIENT_LABELS.get(recipient_key, recipient_key or "близкий человек")
-    age = AGE_LABELS.get(age_key, "")
-    gender = GENDER_LABELS.get(gender_key, "")
-    safe_name = (name or "").strip()[:40]
+    if occasion_key == "ny":
+        people_rule = (
+            "Ordinary real people are forbidden: no guests, no portraits of a friend "
+            "or of the person being congratulated, no contemporary men, women, or children. "
+            "Ded Moroz or Santa Claus must be visible in traditional costume, "
+            "and Snegurochka may stand with them. They are fairy-tale characters, "
+            "not a photograph of a real person. Festive animals such as rabbits "
+            "or squirrels are allowed."
+        )
+    else:
+        people_rule = _NO_REAL_PEOPLE
+    if occasion_key == "ny":
+        product_rule = (
+            "Wrapped holiday gift boxes belong near the tree, "
+            "but do not turn one store product into the hero."
+        )
+    else:
+        product_rule = (
+            "Do not illustrate a store product or a concrete gift item as the hero object."
+        )
     hints = _scene_hints(
         occasion_key=occasion_key,
         recipient_key=recipient_key,
@@ -138,19 +223,17 @@ def build_background_prompt(
         interest_key=interest_key,
         birthday_years=birthday_years,
     )
-    age_bit = f" Age group: {age}." if age else ""
-    gender_bit = f" Gender presentation: {gender}." if gender else ""
     return (
         "Create a premium luxury full-bleed vertical 9:16 greeting-card illustration. "
         "High-end colorful festive scene filling the entire frame, cinematic lighting, "
         "rich refined details, opulent celebration mood, no letterboxing, no empty borders. "
         "Keep the main subject centered; leave soft visually calm zones near the top "
         "and bottom edges for later text overlay (but still filled with scene, not blank). "
-        f"Occasion: {occasion}. For: {recipient}.{age_bit}{gender_bit} "
-        f"Personal dedication vibe for {safe_name or 'a loved one'}. {hints} "
+        f"Occasion mood only, not a person to draw: {occasion}. {hints} "
+        f"{people_rule} "
         "IMPORTANT: absolutely no letters, numbers, words, signatures, logos, watermarks, "
-        "or typography of any kind on the image. No celebrity faces. "
-        "Do not illustrate a store product or a concrete gift item as the hero object."
+        "or typography of any kind on the image. "
+        f"{product_rule}"
     )
 
 

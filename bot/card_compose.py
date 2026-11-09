@@ -13,9 +13,12 @@ from bot.config import get_card_output_size
 logger = logging.getLogger(__name__)
 
 _FONTS_DIR = Path(__file__).resolve().parent / "fonts"
-_FONT_TITLE = _FONTS_DIR / "CormorantGaramond-Bold.ttf"
-_FONT_SCRIPT = _FONTS_DIR / "MarckScript-Regular.ttf"
-_FONT_BODY = _FONTS_DIR / "Manrope-Medium.ttf"
+# Имя и короткий акцент — каллиграфия, как на дорогой открытке.
+_FONT_SCRIPT = _FONTS_DIR / "Comforter-Regular.ttf"
+# Повод — высокий курсивный антиква. Файл вариативный, вес задаётся при загрузке.
+_FONT_OCCASION = _FONTS_DIR / "CormorantGaramond-Italic.ttf"
+# Пожелание — тот же антиква прямым начертанием, не гротеск.
+_FONT_BODY = _FONTS_DIR / "CormorantGaramond-Bold.ttf"
 
 _FALLBACK_FONTS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -126,25 +129,23 @@ def _soft_vignette(base: Image.Image) -> Image.Image:
     return Image.alpha_composite(base.convert("RGBA"), overlay)
 
 
-def build_headline(
-    *,
-    name: str,
-    occasion_key: str,
-    birthday_years: str = "",
-) -> str:
-    who = (name or "").strip() or "Друг"
-    if occasion_key == "birthday":
-        return f"{who}, с днём рождения!"
+def build_name_line(name: str) -> str:
+    return (name or "").strip() or "Друг"
+
+
+def build_occasion_line(occasion_key: str) -> str:
+    """Вторая строка шапки: повод без имени, одним шрифтом для всех праздников."""
     mapping = {
-        "ny": f"{who}, с Новым годом!",
-        "valentine": f"{who}, с 14 февраля!",
-        "mar8": f"{who}, с 8 Марта!",
-        "feb23": f"{who}, с 23 Февраля!",
-        "wedding": f"{who}, с праздником любви!",
-        "colleague": f"{who}, с праздником!",
-        "no_reason": f"{who}, для тебя!",
+        "birthday": "с днём рождения",
+        "ny": "с Новым годом",
+        "valentine": "с 14 февраля",
+        "mar8": "с 8 Марта",
+        "feb23": "с 23 Февраля",
+        "wedding": "с праздником любви",
+        "colleague": "с праздником",
+        "no_reason": "для тебя",
     }
-    return mapping.get(occasion_key, f"{who}, с праздником!")
+    return mapping.get(occasion_key, "с праздником")
 
 
 def build_script_accent(
@@ -212,11 +213,8 @@ def compose_greeting_card_image(
     color = _text_color_for_scene(base)
     max_text_width = int(width * 0.84)
 
-    headline = build_headline(
-        name=name,
-        occasion_key=occasion_key,
-        birthday_years=birthday_years,
-    )
+    name_line = build_name_line(name)
+    occasion_line = build_occasion_line(occasion_key)
     accent = build_script_accent(
         occasion_key=occasion_key,
         birthday_years=birthday_years,
@@ -224,63 +222,83 @@ def compose_greeting_card_image(
     )
     wish_text = _sanitize_wish(wish, name)
 
-    title_font, title_lines, title_size = _fit_font_to_width(
+    name_font, name_lines, name_size = _fit_font_to_width(
         draw,
-        headline,
-        _FONT_TITLE,
+        name_line,
+        _FONT_SCRIPT,
         max_text_width,
-        start_size=max(56, width // 13),
-        min_size=32,
-        weight=700,
-        max_lines=3,
+        start_size=max(92, width // 8),
+        min_size=54,
+        max_lines=2,
     )
-    script_size = max(46, width // 15)
-    if recipient_key == "child":
-        script_size = max(52, width // 14)
-    script_font = _load_font(_FONT_SCRIPT, script_size)
+    occasion_font, occasion_lines, occasion_size = _fit_font_to_width(
+        draw,
+        occasion_line,
+        _FONT_OCCASION,
+        max_text_width,
+        start_size=max(48, width // 18),
+        min_size=30,
+        weight=560,
+        max_lines=2,
+    )
+    accent_size = max(58, width // 13)
+    accent_font = _load_font(_FONT_SCRIPT, accent_size)
     body_font, body_lines, body_size = _fit_font_to_width(
         draw,
         wish_text,
         _FONT_BODY,
         max_text_width,
-        start_size=max(34, width // 22),
-        min_size=22,
+        start_size=max(36, width // 24),
+        min_size=24,
         weight=500,
         max_lines=5,
     )
+
+    def _ink_height(text: str, font: ImageFont.ImageFont, size_hint: int) -> int:
+        bbox = font.getbbox(text or "Ау")
+        return max(int(size_hint * 0.72), bbox[3] - bbox[1])
 
     def _draw_centered_lines(
         lines: list[str],
         font: ImageFont.ImageFont,
         y_start: int,
-        line_gap: float,
         fill: tuple[int, int, int],
         size_hint: int,
+        gap: float = 0.22,
     ) -> int:
         y = y_start
         for line in lines:
             w = draw.textlength(line, font=font)
             x = int((width - w) / 2)
-            draw.text((x + 2, y + 2), line, font=font, fill=(0, 0, 0, 120))
+            draw.text((x + 2, y + 3), line, font=font, fill=(0, 0, 0, 110))
             draw.text((x, y), line, font=font, fill=fill)
-            y += int(size_hint * line_gap)
+            y += _ink_height(line, font, size_hint) + int(size_hint * gap)
         return y
 
     y = int(height * 0.055)
-    y = _draw_centered_lines(title_lines, title_font, y, 1.12, color, title_size)
+    y = _draw_centered_lines(name_lines, name_font, y, color, name_size, gap=0.34)
+    y += int(height * 0.012)
+    y = _draw_centered_lines(
+        occasion_lines,
+        occasion_font,
+        y,
+        color,
+        occasion_size,
+        gap=0.12,
+    )
 
-    y += int(height * 0.01)
-    gold = (255, 224, 170) if color[0] > 200 else (236, 196, 120)
-    accent_w = draw.textlength(accent, font=script_font)
+    y += int(height * 0.008)
+    gold = (255, 224, 170) if color[0] > 200 else (176, 124, 48)
+    accent_w = draw.textlength(accent, font=accent_font)
     ax = int((width - accent_w) / 2)
-    draw.text((ax + 2, y + 2), accent, font=script_font, fill=(0, 0, 0, 100))
-    draw.text((ax, y), accent, font=script_font, fill=gold)
+    draw.text((ax + 2, y + 3), accent, font=accent_font, fill=(0, 0, 0, 100))
+    draw.text((ax, y), accent, font=accent_font, fill=gold)
 
     body_block_h = len(body_lines) * int(body_size * 1.35)
     y_body = int(height * 0.76)
     if y_body + body_block_h > height - int(height * 0.045):
         y_body = height - int(height * 0.045) - body_block_h
-    _draw_centered_lines(body_lines, body_font, y_body, 1.35, color, body_size)
+    _draw_centered_lines(body_lines, body_font, y_body, color, body_size, gap=0.28)
 
     out = io.BytesIO()
     composed.convert("RGB").save(out, format="PNG", optimize=True)

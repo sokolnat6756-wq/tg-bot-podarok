@@ -2,8 +2,8 @@
 
 | Файл | Семейство | Назначение |
 |---|---|---|
-| `CormorantGaramond-Bold.ttf` | Cormorant Garamond (variable, weight 700) | Заголовок |
-| `MarckScript-Regular.ttf` | Marck Script | Короткий рукописный акцент |
-| `Manrope-Medium.ttf` | Manrope (variable, weight 500) | Пожелание |
+| `Comforter-Regular.ttf` | Comforter | Имя и короткий праздничный акцент |
+| `CormorantGaramond-Italic.ttf` | Cormorant Garamond Italic (variable) | Строка повода |
+| `CormorantGaramond-Bold.ttf` | Cormorant Garamond (variable, для пожелания вес 500) | Текст пожелания |
 
 Лицензии: `OFL-*.txt` рядом с файлами. Источник: [Google Fonts](https://github.com/google/fonts).
