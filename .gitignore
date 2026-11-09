@@ -21,6 +21,9 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Данные бота (лимиты открыток и т.п.)
+data/
+
 # IDE и служебные файлы
 .idea/
 .vscode/

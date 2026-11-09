@@ -19,6 +19,8 @@ _FONT_SCRIPT = _FONTS_DIR / "Comforter-Regular.ttf"
 _FONT_OCCASION = _FONTS_DIR / "CormorantGaramond-Italic.ttf"
 # Пожелание — тот же антиква прямым начертанием, не гротеск.
 _FONT_BODY = _FONTS_DIR / "CormorantGaramond-Bold.ttf"
+# Детям и подросткам — округлый читаемый шрифт, не взрослая каллиграфия.
+_FONT_YOUTH = _FONTS_DIR / "Nunito.ttf"
 
 _FALLBACK_FONTS = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -129,6 +131,14 @@ def _soft_vignette(base: Image.Image) -> Image.Image:
     return Image.alpha_composite(base.convert("RGBA"), overlay)
 
 
+def _is_child(recipient_key: str, age_key: str) -> bool:
+    return recipient_key == "child" or age_key == "age_child"
+
+
+def _is_teen(age_key: str) -> bool:
+    return age_key == "age_teen"
+
+
 def build_name_line(name: str) -> str:
     return (name or "").strip() or "Друг"
 
@@ -201,7 +211,9 @@ def compose_greeting_card_image(
     interest_key: str = "",
     selected_gift: str = "",
 ) -> bytes:
-    del age_key, interest_key, selected_gift  # учтены в промпте фона / пожелании
+    del interest_key, selected_gift  # учтены в промпте фона / пожелании
+    child = _is_child(recipient_key, age_key)
+    teen = _is_teen(age_key)
     width, height = get_card_output_size()
     with Image.open(io.BytesIO(background_bytes)) as raw:
         base = cover_to_portrait_9_16(raw, width, height)
@@ -222,37 +234,73 @@ def compose_greeting_card_image(
     )
     wish_text = _sanitize_wish(wish, name)
 
-    name_font, name_lines, name_size = _fit_font_to_width(
-        draw,
-        name_line,
-        _FONT_SCRIPT,
-        max_text_width,
-        start_size=max(92, width // 8),
-        min_size=54,
-        max_lines=2,
-    )
-    occasion_font, occasion_lines, occasion_size = _fit_font_to_width(
-        draw,
-        occasion_line,
-        _FONT_OCCASION,
-        max_text_width,
-        start_size=max(48, width // 18),
-        min_size=30,
-        weight=560,
-        max_lines=2,
-    )
-    accent_size = max(58, width // 13)
-    accent_font = _load_font(_FONT_SCRIPT, accent_size)
-    body_font, body_lines, body_size = _fit_font_to_width(
-        draw,
-        wish_text,
-        _FONT_BODY,
-        max_text_width,
-        start_size=max(36, width // 24),
-        min_size=24,
-        weight=500,
-        max_lines=5,
-    )
+    if child or teen:
+        name_weight = 800 if child else 750
+        body_weight = 650 if child else 600
+        name_font, name_lines, name_size = _fit_font_to_width(
+            draw,
+            name_line,
+            _FONT_YOUTH,
+            max_text_width,
+            start_size=max(84, width // 9),
+            min_size=48,
+            weight=name_weight,
+            max_lines=2,
+        )
+        occasion_font, occasion_lines, occasion_size = _fit_font_to_width(
+            draw,
+            occasion_line,
+            _FONT_YOUTH,
+            max_text_width,
+            start_size=max(46, width // 18),
+            min_size=30,
+            weight=700,
+            max_lines=2,
+        )
+        accent_size = max(64, width // 12) if child else max(54, width // 14)
+        accent_font = _load_font(_FONT_YOUTH, accent_size, weight=800)
+        body_font, body_lines, body_size = _fit_font_to_width(
+            draw,
+            wish_text,
+            _FONT_YOUTH,
+            max_text_width,
+            start_size=max(40, width // 22),
+            min_size=26,
+            weight=body_weight,
+            max_lines=5,
+        )
+    else:
+        name_font, name_lines, name_size = _fit_font_to_width(
+            draw,
+            name_line,
+            _FONT_SCRIPT,
+            max_text_width,
+            start_size=max(92, width // 8),
+            min_size=54,
+            max_lines=2,
+        )
+        occasion_font, occasion_lines, occasion_size = _fit_font_to_width(
+            draw,
+            occasion_line,
+            _FONT_OCCASION,
+            max_text_width,
+            start_size=max(48, width // 18),
+            min_size=30,
+            weight=560,
+            max_lines=2,
+        )
+        accent_size = max(58, width // 13)
+        accent_font = _load_font(_FONT_SCRIPT, accent_size)
+        body_font, body_lines, body_size = _fit_font_to_width(
+            draw,
+            wish_text,
+            _FONT_BODY,
+            max_text_width,
+            start_size=max(36, width // 24),
+            min_size=24,
+            weight=500,
+            max_lines=5,
+        )
 
     def _ink_height(text: str, font: ImageFont.ImageFont, size_hint: int) -> int:
         bbox = font.getbbox(text or "Ау")

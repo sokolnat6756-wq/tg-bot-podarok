@@ -29,11 +29,17 @@ SYSTEM_PROMPT = (
 
 WISH_SYSTEM_PROMPT = (
     "Ты пишешь только текст пожелания для нижней части открытки на русском. "
-    "1–3 коротких предложения, тепло и естественно. "
+    "1–3 коротких предложения. "
     "НЕ начинай с имени и НЕ повторяй имя. "
     "Без эмодзи, без кавычек вокруг всего текста, без хэштегов, без подписи. "
-    "Учитывай повод, возраст (если дан), кем приходится получатель и интересы. "
-    "Не описывай конкретный товар-подарок. Не канцелярит. "
+    "Не описывай конкретный товар-подарок. "
+    "Тон строго по возрасту из задания, это важнее красивых общих фраз. "
+    "Ребёнку 3–12 лет пиши так, как говорят ребёнку: просто, тепло, на «ты», "
+    "короткие слова, про игры, смех, чудеса и мечты. "
+    "Нельзя взрослый тост: «заветные желания», «благополучие», «крепкое здоровье», "
+    "«пусть принесёт» в официальном стиле. "
+    "Подростку — живо и по-дружески, без сюсюканья и без канцелярита. "
+    "Взрослому и пожилому — тепло и элегантно, без детских слов. "
     "Каждый раз формулируй по-новому."
 )
 
@@ -73,34 +79,69 @@ class GiftSuggestResult:
     error: str | None = None
 
 
+def _age_voice(recipient_key: str, age_key: str) -> str:
+    if recipient_key == "child" or age_key == "age_child":
+        return "child"
+    if age_key == "age_teen":
+        return "teen"
+    if age_key == "age_senior":
+        return "senior"
+    return "adult"
+
+
 def _fallback_wish(
     occasion_key: str,
     name: str,
     recipient_key: str,
     *,
+    age_key: str = "",
     birthday_years: str = "",
     selected_gift: str = "",
     interest_key: str = "",
 ) -> str:
-    del name  # имя только в заголовке открытки
-    role = RECIPIENT_LABELS.get(recipient_key, "")
+    del name, selected_gift, birthday_years
+    voice = _age_voice(recipient_key, age_key)
     interest = INTEREST_LABELS.get(interest_key, "")
-    if occasion_key == "birthday" and birthday_years:
-        base = f"Пусть этот день станет началом чудесного года. Желаю здоровья, радости и исполнения желаний."
-    elif occasion_key == "birthday":
-        base = "Желаю море радости, тёплых объятий и исполнения самых светлых желаний."
+    if voice == "child":
+        if occasion_key == "ny":
+            base = (
+                "Пусть в новом году будет много игр, смеха и приятных сюрпризов. "
+                "Желаю тебе весёлого праздника и чтобы мечты начали сбываться!"
+            )
+        elif occasion_key == "birthday":
+            base = (
+                "Пусть этот день будет полным игр, смеха и сюрпризов. "
+                "Желаю тебе веселиться и чтобы самое желанное сбылось!"
+            )
+        else:
+            base = (
+                "Пусть праздник будет весёлым: игры, смех и маленькие чудеса. "
+                "Желаю тебе радости и чтобы мечты начали сбываться!"
+            )
+    elif voice == "teen":
+        if occasion_key == "ny":
+            base = "Пусть новый год принесёт яркие дни, верных друзей и удачу в том, что для тебя важно."
+        elif occasion_key == "birthday":
+            base = "Пусть этот год будет твоим: смелые планы, классные люди рядом и повод гордиться собой."
+        else:
+            base = "Пусть праздник будет по-настоящему твоим: хорошая компания и настроение, которое не кончается."
+    elif voice == "senior":
+        if occasion_key == "ny":
+            base = "Пусть новый год будет спокойным и светлым: здоровье, тепло близких и радость каждый день."
+        else:
+            base = "Желаю здоровья, душевного тепла и чтобы рядом были те, кто вам дорог."
     elif occasion_key == "ny":
         base = "Пусть новый год принесёт лёгкость, удачу и много приятных моментов."
+    elif occasion_key == "birthday":
+        base = "Желаю море радости, тёплых объятий и исполнения самых светлых желаний."
     else:
         occasion = OCCASION_LABELS.get(occasion_key, "праздник")
         base = f"Пусть {occasion} подарит тепло и хорошее настроение надолго."
-    extras: list[str] = []
-    if role == "ребёнок":
-        extras.append("Пусть будет много улыбок и волшебства.")
-    if interest:
-        extras.append(f"И пусть рядом будет радость от любимого дела — {interest}.")
-    del selected_gift  # товар на открытке не обыгрываем
-    return " ".join([base, *extras[:2]])
+    if interest and voice != "child":
+        base = f"{base} И пусть рядом будет радость от любимого дела — {interest}."
+    elif interest and voice == "child":
+        base = f"{base} Пусть будет побольше всего, что ты любишь: {interest}."
+    return base
 
 
 def _answers_brief(answers: dict[str, str]) -> str:
@@ -240,10 +281,12 @@ async def compose_greeting_wish(
     selected_gift: str = "",
     interest_key: str = "",
 ) -> str:
+    voice = _age_voice(recipient_key, age_key)
     fallback = _fallback_wish(
         occasion_key,
         name,
         recipient_key,
+        age_key=age_key,
         birthday_years=birthday_years,
         selected_gift=selected_gift,
         interest_key=interest_key,
@@ -262,6 +305,7 @@ async def compose_greeting_wish(
         f"Повод: {OCCASION_LABELS.get(occasion_key, occasion_key)}\n"
         f"Интересы: {INTEREST_LABELS.get(interest_key, interest_key) or 'не указано'}\n"
         f"Выбранный подарок: {selected_gift or 'не указан'}\n"
+        f"Тон: {voice}. Соблюдай его буквально.\n"
         "Не выдумывай факты, которых нет в списке."
     )
     client = AsyncOpenAI(api_key=api_key)

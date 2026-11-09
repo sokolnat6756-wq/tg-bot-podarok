@@ -127,14 +127,15 @@ def _style_without_people(recipient_key: str, age_key: str) -> str:
 
 def _new_year_scene() -> str:
     return (
-        "Premium colorful New Year interior. The scene MUST clearly include all of: "
-        "a Christmas tree, ornaments, lights and garlands, toys and baubles on the tree, "
-        "a glowing fireplace, and wrapped gift boxes near the tree. "
-        "The ONLY human-like figures allowed are fairy-tale holiday characters in traditional costume: "
-        "Ded Moroz or Santa Claus, and Snegurochka may stand beside them. "
-        "They must read as classic festive characters, not as a photo of a real contemporary person "
-        "and not as the recipient. No other people, no guests, no portraits. "
-        "Festive animals such as rabbits or squirrels may appear as decoration."
+        "Premium colorful New Year interior, like an expensive greeting card. "
+        "Fill the frame with only these subjects: a large decorated Christmas tree "
+        "with ornaments, lights, garlands and baubles; a glowing fireplace; "
+        "wrapped gift boxes under the tree; Ded Moroz or Santa Claus in a full traditional costume; "
+        "Snegurochka may stand beside him, also in a fairy-tale costume; "
+        "a festive rabbit and a small penguin or squirrel may sit in the snow as decoration. "
+        "Ded Moroz or Santa is a storybook character in costume, not a photograph of a real man. "
+        "The foreground is the tree, the gifts and those characters. "
+        "There is no room for anyone else."
     )
 
 
@@ -198,12 +199,11 @@ def build_background_prompt(
     occasion = OCCASION_LABELS.get(occasion_key, occasion_key)
     if occasion_key == "ny":
         people_rule = (
-            "Ordinary real people are forbidden: no guests, no portraits of a friend "
-            "or of the person being congratulated, no contemporary men, women, or children. "
-            "Ded Moroz or Santa Claus must be visible in traditional costume, "
-            "and Snegurochka may stand with them. They are fairy-tale characters, "
-            "not a photograph of a real person. Festive animals such as rabbits "
-            "or squirrels are allowed."
+            "ABSOLUTE RULE: this picture contains no real people and no children. "
+            "No boy, no girl, no baby, no kid in a hat or scarf, no child smiling, "
+            "no child holding a snow globe, gift, or toy. "
+            "No photorealistic human face except the fairy-tale faces of Ded Moroz "
+            "or Santa and, if present, Snegurochka. No guests, no portrait of the recipient."
         )
     else:
         people_rule = _NO_REAL_PEOPLE
@@ -224,13 +224,15 @@ def build_background_prompt(
         birthday_years=birthday_years,
     )
     return (
+        f"{people_rule} "
+        "Do not draw a boy, a girl, or any child, including a child in winter clothes "
+        "holding a snow globe, a gift, or a cup. "
         "Create a premium luxury full-bleed vertical 9:16 greeting-card illustration. "
         "High-end colorful festive scene filling the entire frame, cinematic lighting, "
         "rich refined details, opulent celebration mood, no letterboxing, no empty borders. "
-        "Keep the main subject centered; leave soft visually calm zones near the top "
+        "Keep the festive scene centered; leave soft visually calm zones near the top "
         "and bottom edges for later text overlay (but still filled with scene, not blank). "
         f"Occasion mood only, not a person to draw: {occasion}. {hints} "
-        f"{people_rule} "
         "IMPORTANT: absolutely no letters, numbers, words, signatures, logos, watermarks, "
         "or typography of any kind on the image. "
         f"{product_rule}"

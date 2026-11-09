@@ -19,9 +19,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY bot/ ./bot/
 COPY run.py .
-# bot/fonts — Cormorant Garamond, Marck Script, Manrope (SIL OFL)
+# bot/fonts — Cormorant Garamond, Marck Script, Manrope, Nunito (SIL OFL)
 
-RUN chown -R botuser:botuser /app
+RUN mkdir -p /app/data \
+    && chown -R botuser:botuser /app
 USER botuser
 
 EXPOSE 8080

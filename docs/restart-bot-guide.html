@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Как обновлять и перезапускать Telegram-бота</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --ink: #1c1814;
+      --muted: #5f564c;
+      --card: #fffaf2;
+      --line: #d8ccba;
+      --accent: #0f6e56;
+      --accent-soft: #d8efe6;
+      --warn: #8a3b12;
+      --warn-soft: #f8e4d4;
+      --sky: #1f4b7a;
+      --sky-soft: #dce8f5;
+      --ok: #146c43;
+      --shadow: 0 18px 50px rgba(40, 28, 12, 0.08);
+      --radius: 22px;
+      --font: "Segoe UI", "Trebuchet MS", sans-serif;
+      --mono: Consolas, "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #efe3cf 0, transparent 40%),
+        radial-gradient(circle at top right, #d9ebe3 0, transparent 35%),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    .wrap {
+      width: min(980px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+    }
+
+    .hero {
+      padding: 2.2rem 2rem;
+      border-radius: 32px;
+      background:
+        linear-gradient(135deg, rgba(15, 110, 86, 0.12), transparent 45%),
+        linear-gradient(180deg, #fffdf8, #f7f0e4);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 48rem;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .progress-box {
+      margin-top: 1.4rem;
+      padding: 1rem 1.1rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.55rem;
+    }
+
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: #e8dfd1;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0f6e56, #2f9e7c);
+      transition: width 0.35s ease;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+
+    @media (min-width: 760px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.3rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2, .card h3 {
+      margin-top: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .callout {
+      border-radius: 18px;
+      padding: 1rem 1.1rem;
+      margin: 1rem 0;
+    }
+
+    .callout.warn {
+      background: var(--warn-soft);
+      border: 1px solid #efc7a7;
+      color: var(--warn);
+    }
+
+    .callout.ok {
+      background: var(--accent-soft);
+      border: 1px solid #b6dece;
+      color: var(--ok);
+    }
+
+    .callout.sky {
+      background: var(--sky-soft);
+      border: 1px solid #b8cce4;
+      color: var(--sky);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin: 0 0 1rem;
+    }
+
+    .tab, .chip, button, .check label {
+      cursor: pointer;
+    }
+
+    .tab, .chip {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.55rem 0.95rem;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    .tab.active, .chip.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    ol.steps, .checklist {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    ol.steps > li, .checklist > li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.85rem;
+      align-items: start;
+      padding: 0.95rem 1rem;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .num {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    pre, code {
+      font-family: var(--mono);
+    }
+
+    pre {
+      margin: 0.75rem 0 0;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      background: #1c1814;
+      color: #f6efe4;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      position: relative;
+    }
+
+    .copy {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.3rem 0.7rem;
+      background: rgba(255,255,255,0.14);
+      color: white;
+      font: inherit;
+      font-size: 0.8rem;
+    }
+
+    .checklist input {
+      width: 1.15rem;
+      height: 1.15rem;
+      margin-top: 0.2rem;
+      accent-color: var(--accent);
+    }
+
+    .faq details {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .faq summary {
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .faq p { margin: 0.7rem 0 0; color: var(--muted); }
+
+    .quiz-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      margin: 0.45rem 0;
+      padding: 0.8rem 1rem;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font: inherit;
+    }
+
+    .quiz-option.correct {
+      background: var(--accent-soft);
+      border-color: #8fcbb5;
+      color: var(--ok);
+    }
+
+    .quiz-option.wrong {
+      background: var(--warn-soft);
+      border-color: #efc7a7;
+      color: var(--warn);
+    }
+
+    .result {
+      display: none;
+      margin-top: 0.8rem;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      font-weight: 650;
+    }
+
+    .result.show { display: block; }
+    .result.ok { background: var(--accent-soft); color: var(--ok); }
+    .result.bad { background: var(--warn-soft); color: var(--warn); }
+
+    .scheme {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 1rem;
+    }
+
+    .scheme .arrow {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .scheme .box {
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+      border: 1px dashed #b8ad9c;
+      background: #fff;
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .sticky-note {
+      position: sticky;
+      top: 0.75rem;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">Учебный гайд · Telegram-бот</div>
+      <h1>Как обновить настройки и перезапустить бота</h1>
+      <p class="lead">
+        Интерактивная шпаргалка для учеников: что делает commit/push,
+        почему сервер сам не обновляется, и как правильно перезапустить
+        бота на компьютере и на VPS.
+      </p>
+
+      <div class="progress-box sticky-note">
+        <div class="progress-top">
+          <span>Ваш прогресс по чек-листу</span>
+          <span id="progressText">0 / 8</span>
+        </div>
+        <div class="bar"><span id="progressBar"></span></div>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>1. Главная ловушка: commit и push ≠ обновление сервера</h2>
+      <div class="callout warn">
+        <strong>Commit</strong> сохраняет изменения в истории Git.
+        <strong>Push</strong> отправляет их на GitHub / GitLab.
+        Сервер с ботом <strong>сам ничего не скачивает</strong>.
+        Пока вы не зайдёте на сервер и не сделаете `git pull` + пересборку,
+        там продолжит работать старая версия.
+      </div>
+
+      <div class="scheme">
+        <div class="box"><strong>Ваш компьютер</strong><br>Правите код, меняете `.env`, тестируете `python run.py`</div>
+        <div class="arrow">↓ commit + push</div>
+        <div class="box"><strong>GitHub</strong><br>Хранилище кода. Это ещё не сервер бота.</div>
+        <div class="arrow">↓ git pull + docker compose up --build</div>
+        <div class="box"><strong>VPS / сервер</strong><br>Только здесь бот реально отвечает пользователям 24/7</div>
+      </div>
+
+      <div class="callout sky" style="margin-top:1rem">
+        Если одновременно запущены бот на компьютере и бот на сервере
+        с одним токеном — Telegram выдаёт Conflict, и ответы могут приходить
+        от старой копии.
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>2. Выберите, где сейчас работает бот</h2>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="local">На компьютере</button>
+        <button class="tab" data-tab="server">На сервере (VPS)</button>
+        <button class="tab" data-tab="both">И там, и там — опасно</button>
+      </div>
+
+      <div id="local" class="panel active">
+        <h3>Перезапуск на компьютере после новых настроек</h3>
+        <ol class="steps">
+          <li>
+            <span class="num">1</span>
+            <div>
+              <strong>Остановите старую копию</strong>
+              <p>В окне, где бот запущен, нажмите <code>Ctrl+C</code>.</p>
+              <pre><button class="copy" type="button">Копировать</button><code>Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+  Where-Object { $_.CommandLine -like '*run.py*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }</code></pre>
+            </div>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <div>
+              <strong>Если меняли `.env`</strong>
+              <p>Сохраните файл. Новый запуск подхватит переменные только после перезапуска.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <div>
+              <strong>Запустите бота снова</strong>
+              <pre><button class="copy" type="button">Копировать</button><code>cd "ПУТЬ\К\ПРОЕКТУ"
+.\.venv\Scripts\Activate.ps1
+python run.py</code></pre>
+              <p>Дождитесь строки: <code>Бот запущен (polling)</code>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <div>
+              <strong>Проверьте в Telegram</strong>
+              <p>Нажмите <code>/start</code> и пройдите сценарий заново.
+              Кнопка «Старт» сама код не обновляет — она только начинает диалог.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div id="server" class="panel">
+        <h3>Обновление и перезапуск на сервере</h3>
+        <ol class="steps">
+          <li>
+            <span class="num">1</span>
+            <div>
+              <strong>Сначала отправьте код в GitHub</strong>
+              <pre><button class="copy" type="button">Копировать</button><code>git add .
+git commit -m "Описание изменений"
+git push</code></pre>
+              <p>Это только обновляет репозиторий. Сервер ещё не знает про изменения.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <div>
+              <strong>Остановите локального бота</strong>
+              <p>На компьютере не должно работать <code>python run.py</code> с тем же токеном.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <div>
+              <strong>Зайдите на сервер</strong>
+              <pre><button class="copy" type="button">Копировать</button><code>ssh root@ВАШ_IP</code></pre>
+            </div>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <div>
+              <strong>Скачайте новый код и пересоберите контейнер</strong>
+              <pre><button class="copy" type="button">Копировать</button><code>cd /opt/tg-bot-podarok
+git pull
+docker compose up -d --build
+docker compose ps
+docker compose logs -f --tail 50 bot</code></pre>
+              <p>Ищите в логах: <code>Бот запущен (polling)</code>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">5</span>
+            <div>
+              <strong>Если меняли секреты</strong>
+              <p>Файл <code>.env</code> на сервере правится отдельно. Он не приезжает из GitHub.</p>
+              <pre><button class="copy" type="button">Копировать</button><code>nano /opt/tg-bot-podarok/.env
+docker compose up -d --build</code></pre>
+            </div>
+          </li>
+        </ol>
+
+        <div class="callout ok">
+          Быстрые команды на сервере:
+          остановить — <code>docker stop tg-bot-podarok</code>,
+          запустить — <code>docker start tg-bot-podarok</code>,
+          полностью выключить compose — <code>docker compose down</code>.
+        </div>
+      </div>
+
+      <div id="both" class="panel">
+        <h3>Почему нельзя держать две копии сразу</h3>
+        <p>
+          У бота один токен. Telegram разрешает только одному процессу
+          забирать сообщения. Если запущены и локальная копия, и серверная,
+          появляется ошибка Conflict, а пользователи могут получать ответы
+          от старой версии.
+        </p>
+        <div class="callout warn">
+          Правило: <strong>одна рабочая копия = один источник правды</strong>.
+          Для учебы — компьютер. Для постоянной работы — сервер.
+        </div>
+      </div>
+    </section>
+
+    <section class="grid two" style="margin-top:1rem">
+      <article class="card">
+        <h2>3. Когда что делать</h2>
+        <div class="chips" style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:0.9rem">
+          <button class="chip active" data-case="env">Изменила `.env`</button>
+          <button class="chip" data-case="code">Поменяла код</button>
+          <button class="chip" data-case="fonts">Обновила шрифты/открытки</button>
+          <button class="chip" data-case="limit">Сменила лимит открыток</button>
+        </div>
+        <div id="caseText" class="callout sky">
+          Сохраните `.env` и полностью перезапустите бота.
+          Без перезапуска старые переменные останутся в памяти процесса.
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>4. Мини-квиз</h2>
+        <p><strong>Вопрос:</strong> вы сделали commit и push. Бот на сервере сразу обновится?</p>
+        <button class="quiz-option" data-answer="no">Да, GitHub сам перезапустит Docker</button>
+        <button class="quiz-option" data-answer="yes">Нет, нужно зайти на сервер: git pull и пересобрать</button>
+        <button class="quiz-option" data-answer="no">Да, достаточно нажать /start в Telegram</button>
+        <div id="quizResult" class="result"></div>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>5. Чек-лист перед сдачей / перед проверкой</h2>
+      <ul class="checklist" id="checklist">
+        <li>
+          <input type="checkbox" id="c1" />
+          <label for="c1">Я понимаю, что commit/push только обновляют GitHub, а не сервер</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c2" />
+          <label for="c2">Остановила все лишние копии `python run.py`</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c3" />
+          <label for="c3">Если бот на сервере — сделала `git pull`</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c4" />
+          <label for="c4">Пересобрала контейнер: `docker compose up -d --build`</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c5" />
+          <label for="c5">Проверила логи: есть строка «Бот запущен (polling)»</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c6" />
+          <label for="c6">Не работают одновременно компьютер и сервер с одним токеном</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c7" />
+          <label for="c7">`.env` на сервере проверен отдельно (токен и ключи не в Git)</label>
+        </li>
+        <li>
+          <input type="checkbox" id="c8" />
+          <label for="c8">В Telegram нажала `/start` и проверила новое поведение</label>
+        </li>
+      </ul>
+    </section>
+
+    <section class="card faq" style="margin-top:1rem">
+      <h2>6. Частые вопросы</h2>
+
+      <details>
+        <summary>Почему после push на сервере старые открытки?</summary>
+        <p>
+          Потому что сервер не получил новый код. Нужны `git pull` и
+          `docker compose up -d --build`. Пока этого нет, Docker крутит старый образ.
+        </p>
+      </details>
+
+      <details>
+        <summary>Почему `/start` не помогает?</summary>
+        <p>
+          `/start` сбрасывает диалог пользователя, но не перезагружает программу бота.
+          Новый код появляется только после остановки и нового запуска процесса/контейнера.
+        </p>
+      </details>
+
+      <details>
+        <summary>Что делать при ошибке Conflict?</summary>
+        <p>
+          Где-то ещё запущена вторая копия с тем же токеном.
+          Остановите локальный `run.py` или контейнер на сервере:
+          <code>docker stop tg-bot-podarok</code>.
+        </p>
+      </details>
+
+      <details>
+        <summary>Лимит открыток снова стал 0 после перезапуска?</summary>
+        <p>
+          В новой версии счётчик сохраняется в <code>data/card_limits.json</code>.
+          На сервере эта папка должна быть смонтирована volume в docker-compose,
+          иначе после пересоздания контейнера файл пропадёт.
+        </p>
+      </details>
+
+      <details>
+        <summary>Можно ли пушить `.env`?</summary>
+        <p>
+          Нет. Токены и ключи остаются только в локальном/серверном `.env`.
+          В GitHub уходит код без секретов.
+        </p>
+      </details>
+    </section>
+
+    <footer>
+      Файл гайда: <code>docs/restart-bot-guide.html</code>.
+      Откройте его в браузере. Ничего устанавливать не нужно.
+    </footer>
+  </div>
+
+  <script>
+    const cases = {
+      env: "Сохраните `.env` и полностью перезапустите бота. Без перезапуска старые переменные останутся в памяти процесса.",
+      code: "Сделайте commit/push (если работаете через Git), затем на сервере: git pull + docker compose up -d --build. Локально достаточно остановить и снова запустить python run.py.",
+      fonts: "Это изменение кода и файлов. Нужна пересборка/перезапуск. На сервере обязательно --build, иначе контейнер может взять старый образ без новых шрифтов.",
+      limit: "Если меняли CARD_USER_LIMIT в `.env` — перезапуск обязателен. Счётчик использованных открыток хранится отдельно в data/card_limits.json."
+    };
+
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    document.querySelectorAll(".chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("caseText").textContent = cases[btn.dataset.case];
+      });
+    });
+
+    document.querySelectorAll(".quiz-option").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const result = document.getElementById("quizResult");
+        document.querySelectorAll(".quiz-option").forEach((b) => {
+          b.classList.remove("correct", "wrong");
+          b.disabled = true;
+        });
+        if (btn.dataset.answer === "yes") {
+          btn.classList.add("correct");
+          result.className = "result show ok";
+          result.textContent = "Верно. Push обновляет только GitHub. Сервер нужно обновить вручную.";
+        } else {
+          btn.classList.add("wrong");
+          result.className = "result show bad";
+          result.textContent = "Неверно. Commit/push не перезапускают Docker и не делают git pull за вас.";
+          document.querySelector('.quiz-option[data-answer="yes"]').classList.add("correct");
+        }
+      });
+    });
+
+    const boxes = [...document.querySelectorAll("#checklist input")];
+    const bar = document.getElementById("progressBar");
+    const text = document.getElementById("progressText");
+
+    function updateProgress() {
+      const done = boxes.filter((b) => b.checked).length;
+      const total = boxes.length;
+      const pct = Math.round((done / total) * 100);
+      bar.style.width = pct + "%";
+      text.textContent = done + " / " + total;
+      localStorage.setItem("botGuideChecklist", JSON.stringify(boxes.map((b) => b.checked)));
+    }
+
+    boxes.forEach((box, index) => {
+      box.addEventListener("change", updateProgress);
+      const saved = JSON.parse(localStorage.getItem("botGuideChecklist") || "[]");
+      if (saved[index]) box.checked = true;
+    });
+    updateProgress();
+
+    document.querySelectorAll("pre").forEach((pre) => {
+      const btn = pre.querySelector(".copy");
+      if (!btn) return;
+      btn.addEventListener("click", async () => {
+        const code = pre.querySelector("code").innerText;
+        try {
+          await navigator.clipboard.writeText(code);
+          btn.textContent = "Скопировано";
+          setTimeout(() => (btn.textContent = "Копировать"), 1200);
+        } catch (err) {
+          btn.textContent = "Выделите вручную";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
