@@ -13,12 +13,11 @@ from bot.config import get_card_output_size
 logger = logging.getLogger(__name__)
 
 _FONTS_DIR = Path(__file__).resolve().parent / "fonts"
-# Имя и короткий акцент — каллиграфия, как на дорогой открытке.
-_FONT_SCRIPT = _FONTS_DIR / "Comforter-Regular.ttf"
-# Повод — высокий курсивный антиква. Файл вариативный, вес задаётся при загрузке.
-_FONT_OCCASION = _FONTS_DIR / "CormorantGaramond-Italic.ttf"
-# Пожелание — тот же антиква прямым начертанием, не гротеск.
-_FONT_BODY = _FONTS_DIR / "CormorantGaramond-Bold.ttf"
+# Взрослые открытки: как у люксовых stationery (Simply to Impress / Shutterfly) —
+# тонкая каллиграфия имени + editorial-антиква для повода и пожелания.
+_FONT_SCRIPT = _FONTS_DIR / "GreatVibes-Regular.ttf"
+_FONT_OCCASION = _FONTS_DIR / "PlayfairDisplay-Italic.ttf"
+_FONT_BODY = _FONTS_DIR / "PlayfairDisplay.ttf"
 # Детям и подросткам — округлый читаемый шрифт, не взрослая каллиграфия.
 _FONT_YOUTH = _FONTS_DIR / "Nunito.ttf"
 
@@ -270,13 +269,14 @@ def compose_greeting_card_image(
             max_lines=5,
         )
     else:
+        # Great Vibes — тонкая каллиграфия: крупнее, чтобы имя звучало как на люксовой карточке.
         name_font, name_lines, name_size = _fit_font_to_width(
             draw,
             name_line,
             _FONT_SCRIPT,
             max_text_width,
-            start_size=max(92, width // 8),
-            min_size=54,
+            start_size=max(118, width // 7),
+            min_size=64,
             max_lines=2,
         )
         occasion_font, occasion_lines, occasion_size = _fit_font_to_width(
@@ -284,21 +284,21 @@ def compose_greeting_card_image(
             occasion_line,
             _FONT_OCCASION,
             max_text_width,
-            start_size=max(48, width // 18),
-            min_size=30,
-            weight=560,
+            start_size=max(44, width // 20),
+            min_size=28,
+            weight=500,
             max_lines=2,
         )
-        accent_size = max(58, width // 13)
+        accent_size = max(62, width // 12)
         accent_font = _load_font(_FONT_SCRIPT, accent_size)
         body_font, body_lines, body_size = _fit_font_to_width(
             draw,
             wish_text,
             _FONT_BODY,
             max_text_width,
-            start_size=max(36, width // 24),
-            min_size=24,
-            weight=500,
+            start_size=max(34, width // 26),
+            min_size=22,
+            weight=450,
             max_lines=5,
         )
 
@@ -335,8 +335,13 @@ def compose_greeting_card_image(
         gap=0.12,
     )
 
-    y += int(height * 0.008)
-    gold = (255, 224, 170) if color[0] > 200 else (176, 124, 48)
+    y += int(height * 0.01)
+    gold = (255, 224, 170) if color[0] > 200 else (214, 176, 98)
+    # Тонкая «фольга»-линия, как на премиальных stationery-открытках.
+    line_w = int(width * 0.18)
+    line_x = int((width - line_w) / 2)
+    draw.line((line_x, y, line_x + line_w, y), fill=(*gold, 180), width=2)
+    y += int(height * 0.012)
     accent_w = draw.textlength(accent, font=accent_font)
     ax = int((width - accent_w) / 2)
     draw.text((ax + 2, y + 3), accent, font=accent_font, fill=(0, 0, 0, 100))
