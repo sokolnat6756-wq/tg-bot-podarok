@@ -1,0 +1,63 @@
+name: Deploy Telegram bot to Timeweb
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-bot-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Update bot on VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure SSH safely
+        shell: bash
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_SSH_PRIVATE_KEY"
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Pull and deploy on Timeweb
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST"
+          ssh -i "$HOME/.ssh/id_ed25519" \
+              -o StrictHostKeyChecking=yes \
+              -o BatchMode=yes \
+              -o ConnectTimeout=20 \
+              deploybot@"$VPS_HOST" 'sh -se' <<'REMOTE'
+          cd /opt/tg-bot-podarok
+          git fetch origin main
+          git merge --ff-only origin/main
+          docker compose up -d --build
+          docker compose ps
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent http://127.0.0.1:8080/health >/dev/null; then
+              echo "Bot health check: OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose logs --tail=60 bot
+          echo "ERROR: bot health check did not pass" >&2
+          exit 1
+          REMOTE
